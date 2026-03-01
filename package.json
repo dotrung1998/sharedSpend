@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://dotrung1998.github.io/sharedSpend/",
+  "homepage": "http://tdkkat.com/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
