@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Edit2, Trash2, Sun, Moon, FileText, Settings, Plus, X, Users, Search } from "lucide-react";
+import { Upload, Edit2, Trash2, Sun, Moon, FileText, Settings, Plus, X, Users, Search, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 const translations = {
   en: {
@@ -66,7 +67,9 @@ const translations = {
       supermarkt: "Supermarkt",
       eating_out: "Eating Out",
       other: "Other"
-    }
+    },
+    exportCategories: "Export Categories (Excel)",
+    importCategories: "Import Categories (Excel)"
   },
   de: {
     sharedExpenseTracker: "Gemeinsamer Ausgaben-Tracker",
@@ -132,7 +135,9 @@ const translations = {
       supermarkt: "Supermarkt",
       eating_out: "Restaurants",
       other: "Andere"
-    }
+    },
+    exportCategories: "Kategorien exportieren (Excel)",
+    importCategories: "Kategorien importieren (Excel)"
   },
   vi: {
     sharedExpenseTracker: "Trình Theo Dõi Chi Phí Chung",
@@ -198,7 +203,9 @@ const translations = {
       supermarkt: "Siêu thị",
       eating_out: "Ăn ngoài",
       other: "Khác"
-    }
+    },
+    exportCategories: "Xuất danh mục (Excel)",
+    importCategories: "Nhập danh mục (Excel)"
   }
 };
 
@@ -229,8 +236,8 @@ const PRESET_COLORS = [
   { name: "Lime", value: "#8BC34A" }
 ];
 
-const getTranslatedCategory = (key: string, defaultName: string, t: any) => {
-  return t.categories && t.categories[key] ? t.categories[key] : defaultName;
+const getTranslatedCategory = (key: string, defaultName: string, t: Translation) => {
+  return t.categories && t.categories[key as keyof typeof t.categories] ? t.categories[key as keyof typeof t.categories] : defaultName;
 };
 
 interface Expense {
@@ -250,6 +257,16 @@ interface Category {
 
 interface CategoryRule {
   [categoryKey: string]: string[];
+}
+
+interface Translation {
+  categories: Record<string, string>;
+  monthNames: string[];
+  categoryTotal: string;
+  total: string;
+  person: string;
+  people: string;
+  [key: string]: string | string[] | Record<string, string>;
 }
 
 const ExpenseTracker: React.FC = () => {
@@ -280,12 +297,6 @@ const ExpenseTracker: React.FC = () => {
   
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"appearance" | "categories">("appearance");
-  const [newCategory, setNewCategory] = useState({ name: "", icon: "", note: "" });
-  const [showCustomIconModal, setShowCustomIconModal] = useState(false);
-  const [customIcon, setCustomIcon] = useState("");
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [editingCategoryCustomIcon, setEditingCategoryCustomIcon] = useState("");
-  const [showEditCategoryCustomIconModal, setShowEditCategoryCustomIconModal] = useState(false);
   const [primaryCurrency, setPrimaryCurrency] = useState("EUR");
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<number[]>([]);
@@ -301,14 +312,58 @@ const ExpenseTracker: React.FC = () => {
   const t = translations[language as keyof typeof translations];
 
   useEffect(() => {
+    const loadCategoriesFromExcel = async () => {
+      try {
+        const response = await fetch('/categories.xlsx');
+        if (!response.ok) throw new Error('Failed to fetch categories.xlsx');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet) as Array<{
+          key?: string;
+          name: string;
+          icon?: string;
+          note?: string;
+          keywords?: string;
+        }>;
+
+        if (data.length > 0) {
+          const newCategories: Record<string, Category> = {};
+          const newCategoryRules: CategoryRule = {};
+
+          data.forEach(item => {
+            const key = item.key || item.name.toLowerCase().replace(/\s+/g, "_");
+            newCategories[key] = {
+              name: item.name,
+              icon: item.icon || "📁",
+              note: item.note || ""
+            };
+            newCategoryRules[key] = item.keywords ? item.keywords.split(',').map((k: string) => k.trim().toLowerCase()) : [];
+          });
+
+          setCategories(newCategories);
+          setCategoryRules(newCategoryRules);
+        }
+      } catch (error) {
+        console.error("Failed to load categories from Excel:", error);
+      }
+    };
+
+    loadCategoriesFromExcel();
+  }, []);
+
+  useEffect(() => {
     setCategories(prev => {
       const updated = { ...prev };
       Object.keys(updated).forEach(key => {
-        updated[key].name = t.categories[key as keyof typeof t.categories] || updated[key].name;
+        if (t.categories && t.categories[key as keyof typeof t.categories]) {
+          updated[key].name = t.categories[key as keyof typeof t.categories] as string;
+        }
       });
       return updated;
     });
-  }, [t]);
+  }, [language, t]);
 
   const amountExampleText = currency === "VND" ? (language === "vi" ? "vd: 10000" : "10000") : t.amountExample;
 
@@ -537,7 +592,7 @@ const ExpenseTracker: React.FC = () => {
     }
   };
 
-  const escapeCSV = (field: any) => {
+  const escapeCSV = (field: string | number) => {
     const strField = field.toString();
     if (strField.includes(",") || strField.includes('"') || strField.includes("\n")) {
       return '"' + strField.replace(/"/g, '""') + '"';
@@ -781,7 +836,7 @@ const ExpenseTracker: React.FC = () => {
           const match = line.match(/^(\d{2}\.\d{2}\.\d{4})\s+(.+?)\s+([\d.,]+)$/);
           
           if (match) {
-            const [, date, fullDescription, amountStr] = match;
+            const [, , fullDescription, amountStr] = match;
             const amount = parseAmount(amountStr);
 
             if (amount > 0 && fullDescription.trim()) {
@@ -816,6 +871,61 @@ const ExpenseTracker: React.FC = () => {
     } else {
       reader.readAsText(file);
     }
+  };
+
+  const exportCategoriesToExcel = () => {
+    const data = Object.keys(categories).map(key => ({
+      key,
+      name: categories[key].name,
+      icon: categories[key].icon,
+      keywords: (categoryRules[key] || []).join(', '),
+      note: categories[key].note
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Categories');
+    XLSX.writeFile(workbook, 'categories.xlsx');
+  };
+
+  const handleCategoriesExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const arrayBuffer = event.target?.result as ArrayBuffer;
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet) as Array<{
+        key?: string;
+        name: string;
+        icon?: string;
+        note?: string;
+        keywords?: string;
+      }>;
+
+      if (data.length > 0) {
+        const newCategories: Record<string, Category> = {};
+        const newCategoryRules: CategoryRule = {};
+
+        data.forEach(item => {
+          const key = item.key || item.name.toLowerCase().replace(/\s+/g, "_");
+          newCategories[key] = {
+            name: item.name,
+            icon: item.icon || "📁",
+            note: item.note || ""
+          };
+          newCategoryRules[key] = item.keywords ? item.keywords.split(',').map((k: string) => k.trim().toLowerCase()) : [];
+        });
+
+        setCategories(newCategories);
+        setCategoryRules(newCategoryRules);
+        alert("Categories updated from Excel!");
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const addKeywordToCategory = (categoryKey: string, keyword: string) => {
@@ -1107,7 +1217,30 @@ const ExpenseTracker: React.FC = () => {
 
             {/* Categories Tab */}
             {settingsTab === "categories" && (
-              <div>
+              <div className="space-y-4">
+                {/* Excel Import/Export Section */}
+                <div className={`p-4 rounded flex flex-col md:flex-row gap-2 ${isDarkMode ? 'bg-gray-700' : 'bg-green-50'}`}>
+                  <button
+                    onClick={exportCategoriesToExcel}
+                    className="flex-1 p-3 rounded flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700"
+                  >
+                    <Download size={20} />
+                    {t.exportCategories}
+                  </button>
+                  <label className="flex-1 cursor-pointer">
+                    <div className="p-3 rounded flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 text-center">
+                      <Upload size={20} />
+                      {t.importCategories}
+                    </div>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleCategoriesExcelUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
                 {/* Add New Category Section */}
                 <div className={`p-4 rounded mb-4 ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
                   {!showAddCategory ? (
