@@ -69,24 +69,7 @@ const translations = {
       other: "Other"
     },
     exportCategories: "Export Categories (Excel)",
-    importCategories: "Import Categories (Excel)",
-    login: "Login",
-    register: "Register",
-    username: "Username (Email)",
-    password: "Password",
-    logout: "Logout",
-    verifyEmail: "Verify Email",
-    unverifiedMessage: "Your account is not verified. Please verify your email before using the app.",
-    invalidCredentials: "Invalid username or password.",
-    userAlreadyExists: "Username already exists.",
-    simulateVerify: "Simulate Email Verification",
-    manageUsers: "Manage Users",
-    makeAdmin: "Make Admin",
-    removeAdmin: "Remove Admin",
-    verified: "Verified",
-    unverified: "Unverified",
-    registrationSuccessful: "Registration successful. Please verify your email.",
-    verificationSuccessful: "Email verified successfully! You can now log in."
+    importCategories: "Import Categories (Excel)"
   },
   de: {
     sharedExpenseTracker: "Gemeinsamer Ausgaben-Tracker",
@@ -154,24 +137,7 @@ const translations = {
       other: "Andere"
     },
     exportCategories: "Kategorien exportieren (Excel)",
-    importCategories: "Kategorien importieren (Excel)",
-    login: "Anmelden",
-    register: "Registrieren",
-    username: "Benutzername (E-Mail)",
-    password: "Passwort",
-    logout: "Abmelden",
-    verifyEmail: "E-Mail verifizieren",
-    unverifiedMessage: "Ihr Konto ist nicht verifiziert. Bitte verifizieren Sie Ihre E-Mail, bevor Sie die App nutzen.",
-    invalidCredentials: "Ungültiger Benutzername oder Passwort.",
-    userAlreadyExists: "Benutzername existiert bereits.",
-    simulateVerify: "E-Mail-Verifizierung simulieren",
-    manageUsers: "Benutzer verwalten",
-    makeAdmin: "Admin machen",
-    removeAdmin: "Admin entfernen",
-    verified: "Verifiziert",
-    unverified: "Nicht verifiziert",
-    registrationSuccessful: "Registrierung erfolgreich. Bitte verifizieren Sie Ihre E-Mail.",
-    verificationSuccessful: "E-Mail erfolgreich verifiziert! Sie können sich jetzt anmelden."
+    importCategories: "Kategorien importieren (Excel)"
   },
   vi: {
     sharedExpenseTracker: "Trình Theo Dõi Chi Phí Chung",
@@ -239,24 +205,7 @@ const translations = {
       other: "Khác"
     },
     exportCategories: "Xuất danh mục (Excel)",
-    importCategories: "Nhập danh mục (Excel)",
-    login: "Đăng nhập",
-    register: "Đăng ký",
-    username: "Tên đăng nhập (Email)",
-    password: "Mật khẩu",
-    logout: "Đăng xuất",
-    verifyEmail: "Xác minh Email",
-    unverifiedMessage: "Tài khoản của bạn chưa được xác minh. Vui lòng xác minh email trước khi sử dụng.",
-    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng.",
-    userAlreadyExists: "Tên đăng nhập đã tồn tại.",
-    simulateVerify: "Mô phỏng xác minh Email",
-    manageUsers: "Quản lý người dùng",
-    makeAdmin: "Chỉ định Admin",
-    removeAdmin: "Gỡ bỏ Admin",
-    verified: "Đã xác minh",
-    unverified: "Chưa xác minh",
-    registrationSuccessful: "Đăng ký thành công. Vui lòng xác minh email của bạn.",
-    verificationSuccessful: "Xác minh email thành công! Bây giờ bạn có thể đăng nhập."
+    importCategories: "Nhập danh mục (Excel)"
   }
 };
 
@@ -291,128 +240,6 @@ const getTranslatedCategory = (key: string, defaultName: string, t: Translation)
   return t.categories && t.categories[key as keyof typeof t.categories] ? t.categories[key as keyof typeof t.categories] : defaultName;
 };
 
-interface User {
-  username: string;
-  password?: string;
-  isAdmin: boolean;
-  isVerified: boolean;
-}
-
-interface AuthProps {
-  users: User[];
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  t: Translation;
-  isDarkMode: boolean;
-  buttonColor: string;
-}
-
-const AuthComponent: React.FC<AuthProps> = ({ users, setUsers, setCurrentUser, t, isDarkMode, buttonColor }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      if (!user.isVerified) {
-        setMessage(t.unverifiedMessage);
-      } else {
-        setCurrentUser(user);
-      }
-    } else {
-      setMessage(t.invalidCredentials);
-    }
-  };
-
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (users.find(u => u.username === username)) {
-      setMessage(t.userAlreadyExists);
-      return;
-    }
-    const newUser: User = { username, password, isAdmin: false, isVerified: false };
-    setUsers([...users, newUser]);
-    setIsLogin(true);
-    setMessage(t.registrationSuccessful);
-  };
-
-  const handleVerifyEmail = () => {
-    const updatedUsers = users.map(u => u.username === username ? { ...u, isVerified: true } : u);
-    setUsers(updatedUsers);
-    setMessage(t.verificationSuccessful);
-  };
-
-  return (
-    <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
-      <div className={`p-8 rounded-lg shadow-xl w-full max-w-md ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-        <h2 className="text-3xl font-bold mb-6 text-center">{isLogin ? t.login : t.register}</h2>
-
-        {message && (
-          <div className={`p-3 rounded mb-4 ${message === t.registrationSuccessful || message === t.verificationSuccessful ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {message}
-          </div>
-        )}
-
-        <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-semibold">{t.username}</label>
-            <input
-              type="email"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className={`w-full p-3 rounded border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-              placeholder="email@example.com"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-semibold">{t.password}</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`w-full p-3 rounded border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
-              placeholder="******"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full p-3 rounded text-white font-bold text-lg transition hover:opacity-90"
-            style={{ backgroundColor: buttonColor }}
-          >
-            {isLogin ? t.login : t.register}
-          </button>
-        </form>
-
-        {message === t.unverifiedMessage && (
-          <button
-            onClick={handleVerifyEmail}
-            className="w-full mt-4 p-3 rounded bg-blue-500 text-white font-bold"
-          >
-            {t.simulateVerify}
-          </button>
-        )}
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setMessage("");
-            }}
-            className="text-blue-500 hover:underline"
-          >
-            {isLogin ? "Don't have an account? Register" : "Already have an account? Login"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 interface Expense {
   id: number;
   description: string;
@@ -433,23 +260,6 @@ interface CategoryRule {
 }
 
 interface Translation {
-  login: string;
-  register: string;
-  username: string;
-  password: string;
-  logout: string;
-  verifyEmail: string;
-  unverifiedMessage: string;
-  invalidCredentials: string;
-  userAlreadyExists: string;
-  simulateVerify: string;
-  manageUsers: string;
-  makeAdmin: string;
-  removeAdmin: string;
-  verified: string;
-  unverified: string;
-  registrationSuccessful: string;
-  verificationSuccessful: string;
   categories: Record<string, string>;
   monthNames: string[];
   categoryTotal: string;
@@ -463,8 +273,6 @@ const ExpenseTracker: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const currentDate = new Date();
   const [expenseYear, setExpenseYear] = useState(currentDate.getFullYear().toString());
   const [expenseMonth, setExpenseMonth] = useState((currentDate.getMonth() + 1).toString().padStart(2, "0"));
@@ -472,21 +280,21 @@ const ExpenseTracker: React.FC = () => {
   const [category, setCategory] = useState("supermarkt");
   const [numberOfPeople, setNumberOfPeople] = useState(2);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   const [categories, setCategories] = useState<Record<string, Category>>({
     groceries: { name: translations.en.categories.groceries, icon: "🛒", note: "" },
     supermarkt: { name: translations.en.categories.supermarkt, icon: "🏪", note: "" },
     eating_out: { name: translations.en.categories.eating_out, icon: "🍽️", note: "" },
     other: { name: translations.en.categories.other, icon: "📦", note: "" }
   });
-  
+
   const [categoryRules, setCategoryRules] = useState<CategoryRule>({
     groceries: ["dm-drogerie", "dm-markt", "rossmann"],
     supermarkt: ["rewe", "kaufland", "penny", "go asia", "aldi", "lidl", "netto"],
     eating_out: ["kfc", "backwerk", "sumup", "grill", "asiagourmet", "asia", "chiking", "restaurant", "burger", "pizza", "mcdonalds"],
     other: ["paypal", "depot", "karroum", "tjxeurope", "fressnapf", "pet"]
   });
-  
+
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"appearance" | "categories">("appearance");
   const [primaryCurrency, setPrimaryCurrency] = useState("EUR");
@@ -497,47 +305,11 @@ const ExpenseTracker: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [buttonColor, setButtonColor] = useState("#F1C4D9");
   const [language, setLanguage] = useState("en");
-  
+
   const scrollPositionRef = useRef<number>(0);
   const modalScrollRef = useRef<HTMLDivElement>(null);
 
   const t = translations[language as keyof typeof translations];
-
-  useEffect(() => {
-    const savedUsers = localStorage.getItem("expense_tracker_users");
-    const savedCurrentUser = localStorage.getItem("expense_tracker_current_user");
-
-    const parsedUsers: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
-    // Initialize admin if not exists
-    const adminExists = parsedUsers.find(u => u.username === "dotrung1998@gmail.com");
-    if (!adminExists) {
-      parsedUsers.push({
-        username: "dotrung1998@gmail.com",
-        password: "123456",
-        isAdmin: true,
-        isVerified: true
-      });
-      localStorage.setItem("expense_tracker_users", JSON.stringify(parsedUsers));
-    }
-
-    setUsers(parsedUsers);
-    if (savedCurrentUser) {
-      setCurrentUser(JSON.parse(savedCurrentUser));
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("expense_tracker_users", JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem("expense_tracker_current_user", JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem("expense_tracker_current_user");
-    }
-  }, [currentUser]);
 
   useEffect(() => {
     const loadCategoriesFromExcel = async () => {
@@ -634,16 +406,16 @@ const ExpenseTracker: React.FC = () => {
     if (!searchTerm.trim()) {
       return expenses;
     }
-    
+
     const term = searchTerm.toLowerCase();
     return expenses.filter(exp => {
       const description = exp.description.toLowerCase();
       const amount = exp.amount.toString();
       const categoryName = getTranslatedCategory(exp.category, categories[exp.category]?.name || exp.category, t).toLowerCase();
       const date = convertDateToFileString(exp.date).toLowerCase();
-      
-      return description.includes(term) || 
-             amount.includes(term) || 
+
+      return description.includes(term) ||
+             amount.includes(term) ||
              categoryName.includes(term) ||
              date.includes(term);
     });
@@ -653,11 +425,11 @@ const ExpenseTracker: React.FC = () => {
     if (!highlight.trim()) {
       return text;
     }
-    
+
     const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
     return (
       <span>
-        {parts.map((part, i) => 
+        {parts.map((part, i) =>
           part.toLowerCase() === highlight.toLowerCase() ? (
             <mark key={i} className={`${isDarkMode ? 'bg-yellow-600' : 'bg-yellow-300'}`}>{part}</mark>
           ) : (
@@ -731,13 +503,13 @@ const ExpenseTracker: React.FC = () => {
       }
       setExpenses(prev => prev.filter(exp => exp.category !== categoryKey));
     }
-    
+
     setCategories(prev => {
       const updated = { ...prev };
       delete updated[categoryKey];
       return updated;
     });
-    
+
     setCategoryRules(prev => {
       const updated = { ...prev };
       delete updated[categoryKey];
@@ -831,7 +603,7 @@ const ExpenseTracker: React.FC = () => {
   const downloadCSV = () => {
     const csvRows: string[] = [];
     let rowIndex = 1;
-    
+
     // Header with Per Person column
     csvRows.push(
       ["ID", "Description", "Date", "Amount", "Currency", "Original Amount", "Category", `Per Person (${numberOfPeople} ${numberOfPeople === 1 ? t.person : t.people})`]
@@ -841,7 +613,7 @@ const ExpenseTracker: React.FC = () => {
 
     const categoryTotalCellRefs: string[] = [];
     const categoryPerPersonCellRefs: string[] = [];
-    
+
     Object.keys(categories).forEach(categoryKey => {
       const categoryExpenses = expenses.filter(exp => exp.category === categoryKey);
       if (categoryExpenses.length === 0) return;
@@ -860,7 +632,7 @@ const ExpenseTracker: React.FC = () => {
       categoryExpenses.forEach((exp, index) => {
         const convertedAmount = convertAmountTo(exp.amount, exp.currency, primaryCurrency);
         const perPersonAmount = numberOfPeople > 0 ? convertedAmount / numberOfPeople : 0;
-        
+
         csvRows.push([
           index + 1,
           exp.description || "No description",
@@ -877,10 +649,10 @@ const ExpenseTracker: React.FC = () => {
       const expenseEnd = rowIndex - 1;
       csvRows.push(["", "", "", "", "", "", "", ""].join(","));
       rowIndex++;
-      
+
       const categoryTotalFormula = `=SUM(D${expenseStart}:D${expenseEnd})`;
       const categoryPerPersonFormula = `=D${rowIndex}/${numberOfPeople}`;
-      
+
       csvRows.push(
         ["", t.categoryTotal, "", categoryTotalFormula, primaryCurrency, "", "", categoryPerPersonFormula]
           .map(escapeCSV).join(",")
@@ -894,10 +666,10 @@ const ExpenseTracker: React.FC = () => {
 
     csvRows.push(["", "", "", "", "", "", "", ""].join(","));
     rowIndex++;
-    
+
     const grandTotalFormula = `=SUM(${categoryTotalCellRefs.join(",")})`;
     const grandPerPersonFormula = `=SUM(${categoryPerPersonCellRefs.join(",")})`;
-    
+
     csvRows.push(
       ["", `GRAND ${t.total.toUpperCase()}:`, "", grandTotalFormula, primaryCurrency, "", "", grandPerPersonFormula]
         .map(escapeCSV).join(",")
@@ -951,7 +723,7 @@ const ExpenseTracker: React.FC = () => {
 
       for (let i = startRow; i < data.length; i++) {
         const row = data[i];
-        
+
         if (row.every(cell => cell.trim() === "")) continue;
 
         if (row[0].startsWith("CATEGORY:")) {
@@ -964,7 +736,7 @@ const ExpenseTracker: React.FC = () => {
         }
 
         const rowText = row.join(" ").toLowerCase();
-        if (rowText.includes("total") || 
+        if (rowText.includes("total") ||
             rowText.includes("gesamt") ||
             row[1]?.toLowerCase().includes("total") ||
             row[1]?.toLowerCase().includes("gesamt") ||
@@ -984,7 +756,7 @@ const ExpenseTracker: React.FC = () => {
 
         const expenseCategoryName = row[6] ? row[6].trim() : currentCategoryName;
         const catKey = expenseCategoryName.toLowerCase().replace(/\s+/g, "_");
-        
+
         if (!newCategories[catKey]) {
           newCategories[catKey] = { name: expenseCategoryName, icon: "🔖", note: "" };
         }
@@ -1007,7 +779,7 @@ const ExpenseTracker: React.FC = () => {
 
   const categorizeExpense = (description: string): string => {
     const desc = description.toLowerCase();
-    
+
     for (const [categoryKey, keywords] of Object.entries(categoryRules)) {
       for (const keyword of keywords) {
         if (desc.includes(keyword.toLowerCase())) {
@@ -1015,7 +787,7 @@ const ExpenseTracker: React.FC = () => {
         }
       }
     }
-    
+
     return "other";
   };
 
@@ -1032,7 +804,7 @@ const ExpenseTracker: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      
+
       try {
         const newExpenses: Expense[] = [];
         let uniqueIdCounter = Date.now();
@@ -1045,13 +817,13 @@ const ExpenseTracker: React.FC = () => {
         }
 
         const lines = content.split('\n');
-        
+
         for (let line of lines) {
           line = line.trim();
           if (!line) continue;
-          
+
           // Skip header/footer lines
-          if (line.includes('ALTER SALDO') || line.includes('NEUER SALDO') || 
+          if (line.includes('ALTER SALDO') || line.includes('NEUER SALDO') ||
               line.includes('EINZAHLUNG') || line.includes('SOLLZINSEN') ||
               line.includes('Mindestbetrag') || line.includes('Abrechnung vom') ||
               line.includes('Karteninhaber') || line.includes('Kartennummer') ||
@@ -1062,14 +834,14 @@ const ExpenseTracker: React.FC = () => {
           // Match transaction lines: Date, Description (including location), Amount
           // Pattern: DD.MM.YYYY followed by text and ending with amount
           const match = line.match(/^(\d{2}\.\d{2}\.\d{4})\s+(.+?)\s+([\d.,]+)$/);
-          
+
           if (match) {
             const [, , fullDescription, amountStr] = match;
             const amount = parseAmount(amountStr);
 
             if (amount > 0 && fullDescription.trim()) {
               const categoryKey = categorizeExpense(fullDescription);
-              
+
               newExpenses.push({
                 id: uniqueIdCounter++,
                 description: fullDescription.trim(),
@@ -1158,15 +930,15 @@ const ExpenseTracker: React.FC = () => {
 
   const addKeywordToCategory = (categoryKey: string, keyword: string) => {
     if (!keyword.trim()) return;
-    
+
     // Save scroll position before state update
     const scrollPos = modalScrollRef.current?.scrollTop || 0;
-    
+
     setCategoryRules(prev => ({
       ...prev,
       [categoryKey]: [...(prev[categoryKey] || []), keyword.trim().toLowerCase()]
     }));
-    
+
     // Restore scroll position after state update
     setTimeout(() => {
       if (modalScrollRef.current) {
@@ -1178,12 +950,12 @@ const ExpenseTracker: React.FC = () => {
   const removeKeywordFromCategory = (categoryKey: string, keyword: string) => {
     // Save scroll position before state update
     const scrollPos = modalScrollRef.current?.scrollTop || 0;
-    
+
     setCategoryRules(prev => ({
       ...prev,
       [categoryKey]: (prev[categoryKey] || []).filter(k => k !== keyword)
     }));
-    
+
     // Restore scroll position after state update
     setTimeout(() => {
       if (modalScrollRef.current) {
@@ -1303,7 +1075,7 @@ const ExpenseTracker: React.FC = () => {
               type="button"
               onClick={() => onSelectIcon(icon)}
               className={`text-2xl p-2 rounded hover:bg-opacity-70 transition ${
-                selectedIcon === icon 
+                selectedIcon === icon
                   ? (isDarkMode ? 'bg-gray-500 ring-2 ring-white' : 'bg-gray-300 ring-2 ring-blue-500')
                   : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-gray-200')
               }`}
@@ -1322,11 +1094,6 @@ const ExpenseTracker: React.FC = () => {
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [showIconPicker, setShowIconPicker] = useState(false);
     const [customColorInput, setCustomColorInput] = useState(buttonColor);
-    const [innerSettingsTab, setInnerSettingsTab] = useState<"appearance" | "categories" | "users">(settingsTab === "categories" ? "categories" : "appearance");
-
-    const toggleAdmin = (username: string) => {
-      setUsers(prev => prev.map(u => u.username === username ? { ...u, isAdmin: !u.isAdmin } : u));
-    };
 
     return (
       <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50`}>
@@ -1344,9 +1111,9 @@ const ExpenseTracker: React.FC = () => {
           {/* Tabs */}
           <div className="flex gap-2 mb-4 border-b border-gray-300">
             <button
-              onClick={() => setInnerSettingsTab("appearance")}
+              onClick={() => setSettingsTab("appearance")}
               className={`px-4 py-2 font-semibold transition ${
-                innerSettingsTab === "appearance"
+                settingsTab === "appearance"
                   ? `border-b-2 ${isDarkMode ? 'border-blue-400 text-blue-400' : 'border-blue-500 text-blue-500'}`
                   : 'opacity-60'
               }`}
@@ -1354,38 +1121,26 @@ const ExpenseTracker: React.FC = () => {
               {t.appearance}
             </button>
             <button
-              onClick={() => setInnerSettingsTab("categories")}
+              onClick={() => setSettingsTab("categories")}
               className={`px-4 py-2 font-semibold transition ${
-                innerSettingsTab === "categories"
+                settingsTab === "categories"
                   ? `border-b-2 ${isDarkMode ? 'border-blue-400 text-blue-400' : 'border-blue-500 text-blue-500'}`
                   : 'opacity-60'
               }`}
             >
               {t.manageCategories}
             </button>
-            {currentUser?.isAdmin && (
-              <button
-                onClick={() => setInnerSettingsTab("users")}
-                className={`px-4 py-2 font-semibold transition ${
-                  innerSettingsTab === "users"
-                    ? `border-b-2 ${isDarkMode ? 'border-blue-400 text-blue-400' : 'border-blue-500 text-blue-500'}`
-                    : 'opacity-60'
-                }`}
-              >
-                {t.manageUsers}
-              </button>
-            )}
           </div>
 
           {/* Scrollable content */}
           <div ref={modalScrollRef} className="overflow-y-auto flex-1">
             {/* Appearance Tab */}
-            {innerSettingsTab === "appearance" && (
+            {settingsTab === "appearance" && (
               <div className="space-y-6">
                 {/* Accent Color Section */}
                 <div className={`p-4 rounded ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                   <h3 className="text-lg font-bold mb-3">{t.accentColor}</h3>
-                  
+
                   {/* Preset Colors */}
                   <div className="mb-4">
                     <label className="text-sm opacity-75 mb-2 block">{t.presetColors}</label>
@@ -1398,8 +1153,8 @@ const ExpenseTracker: React.FC = () => {
                             setCustomColorInput(color.value);
                           }}
                           className={`h-12 rounded transition hover:scale-110 ${
-                            buttonColor === color.value 
-                              ? 'ring-4 ring-offset-2 ring-blue-500' 
+                            buttonColor === color.value
+                              ? 'ring-4 ring-offset-2 ring-blue-500'
                               : 'hover:ring-2 ring-gray-400'
                           }`}
                           style={{ backgroundColor: color.value }}
@@ -1461,7 +1216,7 @@ const ExpenseTracker: React.FC = () => {
             )}
 
             {/* Categories Tab */}
-            {innerSettingsTab === "categories" && (
+            {settingsTab === "categories" && (
               <div className="space-y-4">
                 {/* Excel Import/Export Section */}
                 <div className={`p-4 rounded flex flex-col md:flex-row gap-2 ${isDarkMode ? 'bg-gray-700' : 'bg-green-50'}`}>
@@ -1508,9 +1263,9 @@ const ExpenseTracker: React.FC = () => {
                           className={`w-full p-2 rounded ${isDarkMode ? 'bg-gray-600 text-white' : 'bg-white'}`}
                         />
                       </div>
-                      
+
                       <div className="mb-2 flex items-center gap-2">
-                        <div 
+                        <div
                           className={`text-4xl p-2 rounded ${isDarkMode ? 'bg-gray-600' : 'bg-white'} cursor-pointer`}
                           onClick={() => setShowIconPicker(!showIconPicker)}
                         >
@@ -1526,7 +1281,7 @@ const ExpenseTracker: React.FC = () => {
 
                       {showIconPicker && (
                         <div className="mb-2">
-                          <IconPicker 
+                          <IconPicker
                             selectedIcon={newCategoryForm.icon}
                             onSelectIcon={(icon) => {
                               setNewCategoryForm({ ...newCategoryForm, icon });
@@ -1535,7 +1290,7 @@ const ExpenseTracker: React.FC = () => {
                           />
                         </div>
                       )}
-                      
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
@@ -1583,7 +1338,7 @@ const ExpenseTracker: React.FC = () => {
                           <Trash2 size={18} />
                         </button>
                       </div>
-                      
+
                       <div className="mb-2">
                         <label className="text-sm opacity-75 mb-1 block">{t.categoryRules}</label>
                         <div className="flex flex-wrap gap-2 mb-2">
@@ -1604,7 +1359,7 @@ const ExpenseTracker: React.FC = () => {
                             </span>
                           ))}
                         </div>
-                        
+
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -1636,34 +1391,6 @@ const ExpenseTracker: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Users Tab (Admin Only) */}
-            {innerSettingsTab === "users" && currentUser?.isAdmin && (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold mb-4">{t.manageUsers}</h3>
-                <div className="space-y-3">
-                  {users.map(user => (
-                    <div key={user.username} className={`p-4 rounded flex items-center justify-between ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                      <div>
-                        <div className="font-bold">{user.username}</div>
-                        <div className="text-sm opacity-75">
-                          {user.isAdmin ? t.manageUsers : "User"} • {user.isVerified ? t.verified : t.unverified}
-                        </div>
-                      </div>
-                      {user.username !== currentUser.username && (
-                        <button
-                          onClick={() => toggleAdmin(user.username)}
-                          className={`px-4 py-2 rounded text-white font-semibold transition hover:opacity-90`}
-                          style={{ backgroundColor: user.isAdmin ? '#E74C3C' : '#2ECC71' }}
-                        >
-                          {user.isAdmin ? t.removeAdmin : t.makeAdmin}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           <button
@@ -1677,19 +1404,6 @@ const ExpenseTracker: React.FC = () => {
       </div>
     );
   };
-
-  if (!currentUser) {
-    return (
-      <AuthComponent
-        users={users}
-        setUsers={setUsers}
-        setCurrentUser={setCurrentUser}
-        t={t}
-        isDarkMode={isDarkMode}
-        buttonColor={buttonColor}
-      />
-    );
-  }
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
@@ -1721,14 +1435,6 @@ const ExpenseTracker: React.FC = () => {
               className={`p-2 rounded ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button
-              onClick={() => setCurrentUser(null)}
-              className="p-2 rounded bg-red-500 text-white font-bold transition hover:bg-red-600"
-              title={t.logout}
-            >
-              <X size={20} />
-              <span className="hidden md:inline ml-1">{t.logout}</span>
             </button>
           </div>
         </div>
