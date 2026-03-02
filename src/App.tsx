@@ -86,7 +86,11 @@ const translations = {
     verified: "Verified",
     unverified: "Unverified",
     registrationSuccessful: "Registration successful. Please verify your email.",
-    verificationSuccessful: "Email verified successfully! You can now log in."
+    verificationSuccessful: "Email verified successfully! You can now log in.",
+    downloadConfirm: "Are you sure you want to download the CSV file?",
+    downloadConfirmTitle: "Download Confirmation",
+    saveCategoriesKeywords: "Save current categories and keywords for future logins",
+    ok: "OK"
   },
   de: {
     sharedExpenseTracker: "Gemeinsamer Ausgaben-Tracker",
@@ -171,7 +175,11 @@ const translations = {
     verified: "Verifiziert",
     unverified: "Nicht verifiziert",
     registrationSuccessful: "Registrierung erfolgreich. Bitte verifizieren Sie Ihre E-Mail.",
-    verificationSuccessful: "E-Mail erfolgreich verifiziert! Sie können sich jetzt anmelden."
+    verificationSuccessful: "E-Mail erfolgreich verifiziert! Sie können sich jetzt anmelden.",
+    downloadConfirm: "Sind Sie sicher, dass Sie die CSV-Datei herunterladen möchten?",
+    downloadConfirmTitle: "Download-Bestätigung",
+    saveCategoriesKeywords: "Aktuelle Kategorien und Schlüsselwörter für zukünftige Logins speichern",
+    ok: "OK"
   },
   vi: {
     sharedExpenseTracker: "Trình Theo Dõi Chi Phí Chung",
@@ -256,7 +264,11 @@ const translations = {
     verified: "Đã xác minh",
     unverified: "Chưa xác minh",
     registrationSuccessful: "Đăng ký thành công. Vui lòng xác minh email của bạn.",
-    verificationSuccessful: "Xác minh email thành công! Bây giờ bạn có thể đăng nhập."
+    verificationSuccessful: "Xác minh email thành công! Bây giờ bạn có thể đăng nhập.",
+    downloadConfirm: "Bạn có chắc chắn muốn tải xuống tệp CSV không?",
+    downloadConfirmTitle: "Xác nhận tải xuống",
+    saveCategoriesKeywords: "Lưu các danh mục và từ khóa hiện tại cho các lần đăng nhập sau",
+    ok: "Đồng ý"
   }
 };
 
@@ -291,11 +303,23 @@ const getTranslatedCategory = (key: string, defaultName: string, t: Translation)
   return t.categories && t.categories[key as keyof typeof t.categories] ? t.categories[key as keyof typeof t.categories] : defaultName;
 };
 
+interface Category {
+  name: string;
+  icon: string;
+  note: string;
+}
+
+interface CategoryRule {
+  [categoryKey: string]: string[];
+}
+
 interface User {
   username: string;
   password?: string;
   isAdmin: boolean;
   isVerified: boolean;
+  savedCategories?: Record<string, Category>;
+  savedCategoryRules?: CategoryRule;
 }
 
 interface AuthProps {
@@ -422,16 +446,6 @@ interface Expense {
   date: string;
 }
 
-interface Category {
-  name: string;
-  icon: string;
-  note: string;
-}
-
-interface CategoryRule {
-  [categoryKey: string]: string[];
-}
-
 interface Translation {
   login: string;
   register: string;
@@ -450,6 +464,11 @@ interface Translation {
   unverified: string;
   registrationSuccessful: string;
   verificationSuccessful: string;
+  downloadConfirm: string;
+  downloadConfirmTitle: string;
+  saveCategoriesKeywords: string;
+  ok: string;
+  cancel: string;
   categories: Record<string, string>;
   monthNames: string[];
   categoryTotal: string;
@@ -497,6 +516,8 @@ const ExpenseTracker: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [buttonColor, setButtonColor] = useState("#F1C4D9");
   const [language, setLanguage] = useState("en");
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
+  const [saveSettingsChecked, setSaveSettingsChecked] = useState(false);
   
   const scrollPositionRef = useRef<number>(0);
   const modalScrollRef = useRef<HTMLDivElement>(null);
@@ -540,46 +561,51 @@ const ExpenseTracker: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    const loadCategoriesFromExcel = async () => {
-      try {
-        const response = await fetch('/categories.xlsx');
-        if (!response.ok) throw new Error('Failed to fetch categories.xlsx');
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(worksheet) as Array<{
-          key?: string;
-          name: string;
-          icon?: string;
-          note?: string;
-          keywords?: string;
-        }>;
+    if (currentUser?.savedCategories && currentUser?.savedCategoryRules) {
+      setCategories(currentUser.savedCategories);
+      setCategoryRules(currentUser.savedCategoryRules);
+    } else {
+      const loadCategoriesFromExcel = async () => {
+        try {
+          const response = await fetch('/categories.xlsx');
+          if (!response.ok) throw new Error('Failed to fetch categories.xlsx');
+          const arrayBuffer = await response.arrayBuffer();
+          const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(worksheet) as Array<{
+            key?: string;
+            name: string;
+            icon?: string;
+            note?: string;
+            keywords?: string;
+          }>;
 
-        if (data.length > 0) {
-          const newCategories: Record<string, Category> = {};
-          const newCategoryRules: CategoryRule = {};
+          if (data.length > 0) {
+            const newCategories: Record<string, Category> = {};
+            const newCategoryRules: CategoryRule = {};
 
-          data.forEach(item => {
-            const key = item.key || item.name.toLowerCase().replace(/\s+/g, "_");
-            newCategories[key] = {
-              name: item.name,
-              icon: item.icon || "📁",
-              note: item.note || ""
-            };
-            newCategoryRules[key] = item.keywords ? item.keywords.split(',').map((k: string) => k.trim().toLowerCase()) : [];
-          });
+            data.forEach(item => {
+              const key = item.key || item.name.toLowerCase().replace(/\s+/g, "_");
+              newCategories[key] = {
+                name: item.name,
+                icon: item.icon || "📁",
+                note: item.note || ""
+              };
+              newCategoryRules[key] = item.keywords ? item.keywords.split(',').map((k: string) => k.trim().toLowerCase()) : [];
+            });
 
-          setCategories(newCategories);
-          setCategoryRules(newCategoryRules);
+            setCategories(newCategories);
+            setCategoryRules(newCategoryRules);
+          }
+        } catch (error) {
+          console.error("Failed to load categories from Excel:", error);
         }
-      } catch (error) {
-        console.error("Failed to load categories from Excel:", error);
-      }
-    };
+      };
 
-    loadCategoriesFromExcel();
-  }, []);
+      loadCategoriesFromExcel();
+    }
+  }, [currentUser?.username, currentUser?.savedCategories, currentUser?.savedCategoryRules]);
 
   useEffect(() => {
     setCategories(prev => {
@@ -826,6 +852,24 @@ const ExpenseTracker: React.FC = () => {
       return '"' + strField.replace(/"/g, '""') + '"';
     }
     return strField;
+  };
+
+  const handleDownloadClick = () => {
+    setShowDownloadConfirm(true);
+  };
+
+  const handleConfirmDownload = () => {
+    if (saveSettingsChecked && currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        savedCategories: categories,
+        savedCategoryRules: categoryRules
+      };
+      setCurrentUser(updatedUser);
+      setUsers(prev => prev.map(u => u.username === currentUser.username ? updatedUser : u));
+    }
+    setShowDownloadConfirm(false);
+    downloadCSV();
   };
 
   const downloadCSV = () => {
@@ -1867,7 +1911,7 @@ const ExpenseTracker: React.FC = () => {
             />
           </label>
           <button
-            onClick={downloadCSV}
+            onClick={handleDownloadClick}
             className={`flex-1 p-3 rounded ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
           >
             {t.downloadCSV}
@@ -2074,6 +2118,56 @@ const ExpenseTracker: React.FC = () => {
       </div>
 
       {showSettingsModal && <SettingsModal />}
+
+      {showDownloadConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'} p-6 rounded-lg shadow-xl w-full max-w-md`}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">{t.downloadConfirmTitle}</h2>
+              <button
+                onClick={() => setShowDownloadConfirm(false)}
+                className={`p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="mb-6">{t.downloadConfirm}</p>
+
+            <label className="flex items-center gap-3 mb-8 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={saveSettingsChecked}
+                  onChange={(e) => setSaveSettingsChecked(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
+              <span className="text-sm font-medium group-hover:opacity-80 transition-opacity">
+                {t.saveCategoriesKeywords}
+              </span>
+            </label>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmDownload}
+                className="flex-1 p-3 rounded text-white font-bold transition hover:opacity-90"
+                style={{ backgroundColor: buttonColor }}
+              >
+                {t.ok}
+              </button>
+              <button
+                onClick={() => setShowDownloadConfirm(false)}
+                className={`flex-1 p-3 rounded font-bold transition ${
+                  isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'
+                }`}
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
